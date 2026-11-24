@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Corrida do BolsoPetismo — Edição Brasil 3D</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- Three.js + GLTFLoader + RoomEnvironment (Iluminação PBR/IBL) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/environments/RoomEnvironment.js"></script>
+</head>
+<body>
+    <div id="game-container"></div>
+
+    <!-- HUD (Interface durante o jogo) -->
+    <div id="hud" class="hidden">
+        <div class="hud-top">
+            <div class="stat-box score-box">
+                <span class="label">PONTOS</span>
+                <span id="score-val">000000</span>
+            </div>
+            <div class="stat-box coin-box">
+                <span class="coin-icon">💵</span>
+                <span id="coins-val">0</span>
+            </div>
+            <button id="pause-btn" title="Pausar (P ou ESC)">⏸</button>
+        </div>
+        <div id="powerup-indicator" class="hidden">
+            <span id="powerup-text">SKATE ATIVO!</span>
+            <div class="powerup-bar-bg"><div id="powerup-bar"></div></div>
+        </div>
+    </div>
+
+    <!-- Tela Inicial Profissional Baseada na Arte de Capa -->
+    <div id="start-screen" class="overlay start-overlay">
+        <div class="menu-bg-art" style="background-image: url('assets/images/capa.jpg');"></div>
+        <div class="menu-bg-vignette"></div>
+
+        <div class="menu-shell">
+            <!-- Coluna Esquerda: Showcase da Arte Oficial -->
+            <div class="menu-hero-card">
+                <div class="hero-badge-row">
+                    <span class="hero-pill gold">EDIÇÃO BRASIL 3D</span>
+                    <span class="hero-pill sky">RIO DE JANEIRO</span>
+                </div>
+                <div class="hero-art-frame">
+                    <img src="assets/images/capa.jpg" alt="Corrida do BolsoPetismo" class="hero-art-img">
+                    <div class="hero-art-caption">
+                        <span class="hero-kicker">ARENA CARIOCA • PISTA &amp; ORLA</span>
+                        <h1 class="hero-logo-title">CORRIDA DO <span>BOLSOPETISMO</span></h1>
+                    </div>
+                </div>
+                <div class="hero-highlights">
+                    <div class="highlight-chip">🚗 Uno Mille, Fusca, Kombi &amp; Táxi</div>
+                    <div class="highlight-chip">🐕 Caramelo na Pista</div>
+                    <div class="highlight-chip">🛹 Skate Turbo</div>
+                </div>
+            </div>
+
+            <!-- Coluna Direita: Seleção de Personagem, Controles e Ação -->
+            <div class="panel menu-control-panel">
+                <div class="panel-header-row">
+                    <div>
+                        <span class="panel-eyebrow">PRONTO PARA CORRER</span>
+                        <h2 class="panel-heading">Escolha seu Corredor</h2>
+                    </div>
+                    <span class="mode-tag">3D ARCADE</span>
+                </div>
+
+                                <div class="char-cards" id="char-cards">
+                    <button type="button" class="char-card selected" data-char="lula" id="card-lula" aria-label="Lula">
+                        <img src="assets/images/face-lula.png" alt="Lula" class="char-face-img">
+                    </button>
+                    <button type="button" class="char-card" data-char="bolsonaro" id="card-bolsonaro" aria-label="Bolsonaro">
+                        <img src="assets/images/face-bolsonaro.png" alt="Bolsonaro" class="char-face-img">
+                    </button>
+                </div>
+
+                <button type="button" id="play-btn" class="primary-btn play-below-chars">
+                    <span>▶ JOGAR</span>
+                </button>
+
+                <div class="player-name-box">
+                    <label for="player-name-input" class="player-name-label">SEU NOME NO RANKING</label>
+                    <input
+                        type="text"
+                        id="player-name-input"
+                        class="player-name-input"
+                        maxlength="18"
+                        placeholder="Digite seu nome ou apelido..."
+                        autocomplete="off"
+                    >
+                </div>
+
+                <div class="ranking-card">
+                    <div class="ranking-header">
+                        <span class="ranking-title">🏆 RANKING TOP 10</span>
+                        <div class="ranking-actions">
+                            <span id="ranking-mode-badge" class="ranking-badge">LOCAL / PRONTO P/ ONLINE</span>
+                            <button type="button" id="refresh-ranking-btn" class="ranking-refresh-btn" title="Atualizar ranking">↻</button>
+                        </div>
+                    </div>
+                    <div id="menu-ranking-list" class="ranking-list"></div>
+                    <div id="menu-ranking-status" class="ranking-status-msg hidden"></div>
+                </div>
+
+                <div id="glb-status" class="glb-status">
+                    Modo Híbrido GLB: Coloque <code>lula.glb</code> e <code>bolsonaro.glb</code> em <code>assets/models/</code> para ativar os modelos esculpidos!
+                </div>
+
+                <div class="controls-grid">
+                    <div class="control-box">
+                        <span class="control-title">CONTROLES PC</span>
+                        <p><strong>Setas / WASD:</strong> Mover, Pular e Rolar</p>
+                        <p><strong>Espaço:</strong> Ativar Skate Turbo</p>
+                    </div>
+                    <div class="control-box">
+                        <span class="control-title">CONTROLES MOBILE</span>
+                        <p><strong>Deslizar:</strong> Faixas, Pulo e Rolamento</p>
+                        <p><strong>Toque Duplo:</strong> Ativar Skate Turbo</p>
+                    </div>
+                </div>
+
+                <button type="button" id="donate-btn" class="btn btn-donate">💚 Donate via Pix</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tela de Pausa -->
+    <div id="pause-screen" class="overlay hidden">
+        <div class="panel modal-panel">
+            <h2>JOGO PAUSADO</h2>
+            <p class="modal-sub">A corrida no Rio está em pausa.</p>
+            <button id="resume-btn" class="primary-btn">CONTINUAR</button>
+            <button id="restart-pause-btn" class="secondary-btn">REINICIAR</button>
+        </div>
+    </div>
+
+    <!-- Tela de Game Over -->
+    <div id="gameover-screen" class="overlay hidden">
+        <div class="panel modal-panel">
+            <h2 class="gameover-title">FIM DE JOGO!</h2>
+            <div class="final-stats">
+                <div class="final-stat">
+                    <span>Pontuação Final</span>
+                    <strong id="final-score">0</strong>
+                </div>
+                <div class="final-stat">
+                    <span>Recorde</span>
+                    <strong id="best-score">0</strong>
+                </div>
+                <div class="final-stat">
+                    <span>Moedas Coletadas</span>
+                    <strong id="final-coins">0</strong>
+                </div>
+            </div>
+                        <div class="gameover-name-row">
+                <input
+                    type="text"
+                    id="gameover-name-input"
+                    class="player-name-input"
+                    maxlength="18"
+                    placeholder="Nome para salvar no ranking..."
+                    autocomplete="off"
+                >
+                <button type="button" id="save-gameover-score-btn" class="save-score-btn">SALVAR</button>
+            </div>
+
+            <div class="ranking-card compact-over">
+                <div class="ranking-header">
+                    <span class="ranking-title">🏆 RANKING</span>
+                </div>
+                <div id="gameover-ranking-list" class="ranking-list"></div>
+                    <div id="gameover-ranking-status" class="ranking-status-msg hidden"></div>
+            </div>
+
+            <button id="play-again-btn" class="primary-btn">JOGAR NOVAMENTE</button>
+            <button type="button" id="share-game-btn" class="secondary-btn share-game-btn">📤 COMPARTILHAR JOGO</button>
+            <span id="share-game-feedback" class="share-feedback" aria-live="polite"></span>
+            <button id="change-char-btn" class="secondary-btn">TROCAR PERSONAGEM</button>
+        </div>
+    </div>
+
+    <script src="audio.js"></script>
+    <script src="textures_pbr.js"></script>
+    <script>
+        window.sfx = window.sfx || {
+            init: function() {},
+            crash: function() {},
+            dodge: function() {},
+            jump: function() {},
+            roll: function() {},
+            powerup: function() {},
+            bark: function() {},
+            coin: function() {}
+        };
+        window.createRioSkyDome = window.createRioSkyDome || function(scene) {
+            if (scene && typeof THREE !== 'undefined') {
+                scene.background = new THREE.Color(0x38bdf8);
+            }
+        };
+        window.createPBRAsphaltTextures = window.createPBRAsphaltTextures || function() {
+            const c = document.createElement('canvas'); c.width = 256; c.height = 256;
+            const ctx = c.getContext('2d');
+            ctx.fillStyle = '#1e293b'; ctx.fillRect(0, 0, 256, 256);
+            ctx.fillStyle = '#facc15'; ctx.fillRect(124, 0, 8, 128);
+            const tex = new THREE.CanvasTexture(c);
+            tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+            return { map: tex, bumpMap: tex };
+        };
+        window.createPBRCopacabanaSidewalkTextures = window.createPBRCopacabanaSidewalkTextures || function() {
+            const c = document.createElement('canvas'); c.width = 256; c.height = 256;
+            const ctx = c.getContext('2d');
+            ctx.fillStyle = '#f8fafc'; ctx.fillRect(0, 0, 256, 256);
+            ctx.fillStyle = '#0f172a';
+            for (let y = 0; y < 256; y += 64) ctx.fillRect(0, y, 256, 28);
+            const tex = new THREE.CanvasTexture(c);
+            tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+            return { map: tex, bumpMap: tex };
+        };
+        window.createPBRBuildingTextures = window.createPBRBuildingTextures || function(wallCol, trimCol) {
+            const c = document.createElement('canvas'); c.width = 256; c.height = 256;
+            const ctx = c.getContext('2d');
+            ctx.fillStyle = wallCol || '#f8fafc'; ctx.fillRect(0, 0, 256, 256);
+            ctx.fillStyle = '#0f172a';
+            for (let y = 24; y < 230; y += 44) {
+                for (let x = 24; x < 230; x += 56) ctx.fillRect(x, y, 32, 26);
+            }
+            const tex = new THREE.CanvasTexture(c);
+            return { map: tex, roughnessMap: tex };
+        };
+    </script>
+
+    <script src="models.js"></script>
+    <script src="leaderboard.js"></script>
+    <script src="game.js"></script>
+
+    <!-- Modal Profissional Donate Pix -->
+    <div id="donate-modal" class="donate-modal hidden" role="dialog" aria-modal="true" aria-labelledby="donate-title">
+        <div class="donate-card">
+            <div class="donate-header">
+                <h3 id="donate-title">💚 Donate via Pix</h3>
+                <button type="button" id="close-donate-btn" class="donate-close" aria-label="Fechar">✕</button>
+            </div>
+            <p class="donate-subtitle">Escaneie o QR Code no aplicativo do seu banco ou copie a chave Pix abaixo:</p>
+            <div class="donate-qr-box">
+                <img src="assets/images/pix-qrcode.png" alt="QR Code Pix" class="donate-qr-img">
+            </div>
+            <div class="donate-key-box">
+                <input type="text" id="pix-key-input" class="donate-key-input" readonly
+                    value="00020126580014br.gov.bcb.pix013631f1521a-c658-4b47-833f-a68afc5cb22e5204000053039865802BR5924HENRIQUE MEDEIROS DA SIL6009Sao Paulo62220518daqr2931166435827463041948">
+                <button type="button" id="copy-pix-btn" class="btn-copy-pix">Copiar Chave</button>
+            </div>
+            <span id="copy-pix-feedback" class="donate-feedback"></span>
+        </div>
+    </div>
+
+</body>
+</html>
